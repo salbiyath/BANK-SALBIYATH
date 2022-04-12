@@ -1,10 +1,10 @@
-const db = require("../../models");
+const db = require("../models");
 const { validationResult } = require("express-validator");
 const Customer = db.customers;
 const Op = db.Sequelize.Op;
 
 // Create and Save a new Customer
-exports.create = async (req, res, next) => {
+exports.create = async (req, res) => {
   try {
     const errors = validationResult(req); // Finds the validation errors in this request and wraps them in an object with handy functions
 
@@ -27,31 +27,37 @@ exports.create = async (req, res, next) => {
     });
 
     res.json(customer);
-  } catch (error) {
-    return next(err);
+  } catch (err) {
+    const errObj = {};
+    err.errors.map((er) => {
+      errObj[er.path] = er.message;
+    });
+    res.status(422).send({
+      Error: {
+        message: errObj,
+      },
+    });
   }
 };
 
 // Retrieve all Tutorials from the database.
-exports.findAll = (req, res) => {
-  const title = req.query.title;
-  var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
-  Customer.findAll({ where: condition })
+exports.findAll = async (req, res) => {
+  await Customer.findAll()
     .then((data) => {
       res.send(data);
     })
     .catch((err) => {
       res.status(500).send({
         message:
-          err.message || "Some error occurred while retrieving tutorials.",
+          err.message || "Some error occurred while retrieving customer.",
       });
     });
 };
 
 // Find a single Customer with an id
-exports.findOne = (req, res) => {
+exports.findOne = async (req, res) => {
   const id = req.params.id;
-  Customer.findByPk(id)
+  await Customer.findByPk(id)
     .then((data) => {
       if (data) {
         res.send(data);
@@ -69,9 +75,9 @@ exports.findOne = (req, res) => {
 };
 
 // Update a Customer by the id in the request
-exports.update = (req, res) => {
+exports.update = async (req, res) => {
   const id = req.params.id;
-  Customer.update(req.body, {
+  await Customer.update(req.body, {
     where: { id: id },
   })
     .then((num) => {
@@ -93,9 +99,9 @@ exports.update = (req, res) => {
 };
 
 // Delete a Customer with the specified id in the request
-exports.delete = (req, res) => {
+exports.delete = async (req, res) => {
   const id = req.params.id;
-  Customer.destroy({
+  await Customer.destroy({
     where: { id: id },
   })
     .then((num) => {
@@ -112,37 +118,6 @@ exports.delete = (req, res) => {
     .catch((err) => {
       res.status(500).send({
         message: "Could not delete Customer with id=" + id,
-      });
-    });
-};
-
-// Delete all Tutorials from the database.
-exports.deleteAll = (req, res) => {
-  Customer.destroy({
-    where: {},
-    truncate: false,
-  })
-    .then((nums) => {
-      res.send({ message: `${nums} Tutorials were deleted successfully!` });
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while removing all tutorials.",
-      });
-    });
-};
-
-// Find all published Tutorials
-exports.findAllPublished = (req, res) => {
-  Customer.findAll({ where: { published: true } })
-    .then((data) => {
-      res.send(data);
-    })
-    .catch((err) => {
-      res.status(500).send({
-        message:
-          err.message || "Some error occurred while retrieving tutorials.",
       });
     });
 };
